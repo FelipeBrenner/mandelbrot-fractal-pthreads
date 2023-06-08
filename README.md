@@ -33,3 +33,9 @@ https://locklessinc.com/articles/mandelbrot/
 https://gist.github.com/andrejbauer/7919569
 
 http://jonisalonen.com/2013/lets-draw-the-mandelbrot-set/
+
+## To Do
+
+- [ ] Refatorar colors.h
+- [ ] Testar enxergar os quadrados renderizando por vez
+- [ ] Remover coordenadas por parâmetro e passar a receber as coisas que é para variarmos no enunciado do trabalho

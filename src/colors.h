@@ -22,14 +22,11 @@ static int palette[] = {
   5353215     // #51A04F (Verde brilhante)
 };
 
-
-
 // escolhe a quantidade de cores que queremos que tenha no desenho
 static void colors_init(int *colors, int length) {
   for (int i= 0; i < length - 1; i++) {
     colors[i] = palette[i % 16];
   }
 }
-
 
 #endif
