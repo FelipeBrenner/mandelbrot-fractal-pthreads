@@ -30,7 +30,7 @@ const int GRAIN_SIZE = 100;
 // lista de tarefas a serem executadas
 typedef struct {
   int tasks;
-} consumer_data;
+} printer_data;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -122,7 +122,7 @@ static int create_tasks(int image_width, int image_height) {
 }
 
 // cria as threads trabalhadoras - algoritmo mandelbrot
-static void *producer(void *data) {
+static void *workers(void *data) {
   while (1) {
     // se a lista de tarefas está vazia nao faz nada ainda
     if (task_queue->is_empty) {
@@ -171,9 +171,9 @@ static void *producer(void *data) {
   return NULL;
 }
 
-// cria as threads de consumo dos dados - gerando na tela
-static void *consumer(void *data) {
-  consumer_data *cd = (consumer_data *) data;
+// cria as threads de impressao dos dados em tela
+static void *printer(void *data) {
+  printer_data *cd = (printer_data *) data;
   int consumed_tasks = 0;
 
   while (1) {
@@ -202,29 +202,29 @@ void process_mandelbrot_set() {
   int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // processos trabalhadores para executar com a qt de threads determinada
-  pthread_t producer_threads[THREADS_QUANTITY];
+  pthread_t workers_threads[THREADS_QUANTITY];
   // processo impressor
-  pthread_t consumer_thread;
+  pthread_t printer_thread;
 
-  // determina a qt de threads criadas e diz o que cada producer vair ser com o metodo producer
+  // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo workers
   for (int i = 0; i < THREADS_QUANTITY; i++) {
-    pthread_create(&producer_threads[i], NULL, producer, NULL);
+    pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
 
   // pega a fila de tarefas produzidas
-  consumer_data *cd = malloc(sizeof(consumer_data));
+  printer_data *cd = malloc(sizeof(printer_data));
   // adiciona o numero de tasks
   cd->tasks = tasks_created;
   // cria a quantidade de threads a receber as tarefas produzidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
-  pthread_create(&consumer_thread, NULL, consumer, cd);
+  pthread_create(&printer_thread, NULL, printer, cd);
 
   // junta o resultado das threads de execucao
   for (int i = 0; i < THREADS_QUANTITY; i++) {
-    pthread_join(producer_threads[i], NULL);
+    pthread_join(workers_threads[i], NULL);
   }
 
   // junta o resultado das threads de consumo
-  pthread_join(consumer_thread, NULL);
+  pthread_join(printer_thread, NULL);
   free(cd);
 }
 
