@@ -37,7 +37,6 @@ typedef struct {
   int xf;
   int yi;
   int yf;
-  
 } task_data;
 
 // resultado de cada tarefa

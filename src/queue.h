@@ -26,8 +26,10 @@ queue *queue_init (unsigned size, size_t item_size) {
   q->head = 0;
   q->tail = 0;
 
+  // pthread_mutex_t - exclusao mutua - garante que apenas uma thread tera acesso a um dado na memoria compartilhada em um determinado instante de tempo
   q->mutex = (pthread_mutex_t *) malloc(sizeof (pthread_mutex_t));
   pthread_mutex_init(q->mutex, NULL);
+  // pthread_cond_t - variavel de condicao - permite o acesso a uma secao critica quando uma determinada condicao for satisfeita
   q->condition_not_full = (pthread_cond_t *) malloc(sizeof (pthread_cond_t));
   pthread_cond_init(q->condition_not_full, NULL);
   q->condition_not_empty = (pthread_cond_t *) malloc(sizeof (pthread_cond_t));
