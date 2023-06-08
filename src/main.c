@@ -124,16 +124,18 @@ static int create_tasks(int image_width, int image_height) {
 // cria as threads trabalhadoras - algoritmo mandelbrot
 static void *worker(void *data) {
   while (1) {
-    // bloqueia a thread para ser utilizada
-    pthread_mutex_lock(task_queue->mutex);
-    // desbloqueia para a lista de tarefas esteja vazia
+    // se a lista de tarefas está vazia nao faz nada ainda
     if (task_queue->is_empty) {
-      pthread_mutex_unlock(task_queue->mutex);
       break;
     }
-    task_data *task = malloc(sizeof(task_data));
+
+    // quando há trabalho a ser realizado então bloqueia a thread para ser utilizada
+    pthread_mutex_lock(task_queue->mutex);
+
     // pega a tarefa da lista
+    task_data *task = malloc(sizeof(task_data));
     queue_pop(task_queue, task);
+    // desbloqueia a tarefa
     pthread_mutex_unlock(task_queue->mutex);
 
     result_data *result = malloc(sizeof(result_data));
