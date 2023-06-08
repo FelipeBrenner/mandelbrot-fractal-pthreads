@@ -24,10 +24,18 @@ static int palette[] = {
   15357116    // #EA54BC (Rosa)
 };
 
-// escolhe a quantidade de cores que queremos que tenha no desenho
-static void colors_init(int *colors, int length) {
+static void generate_palette(int *colors, int length) {
   for (int i= 0; i < length - 1; i++) {
-    colors[i] = palette[i % 16];
+    colors[i] = 17000000/length * i;
+  }
+}
+
+// escolhe a quantidade de cores que queremos que tenha no desenho
+static void colors_init(int *colors, int length, int number_of_colors) {
+  generate_palette(palette, number_of_colors);
+
+  for (int i= 0; i < length - 1; i++) {
+    colors[i] = palette[i % number_of_colors];
   }
 }
 

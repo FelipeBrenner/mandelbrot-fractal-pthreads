@@ -10,8 +10,9 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 8;
+static const int THREADS_QUANTITY = 12;
 static const int QUANTITY_ITERATION = 1024;
+static const int NUMBER_OF_COLORS = 72;
 static int colors[QUANTITY_ITERATION + 1] = {0};
 
 // fila/buffer de trabalhos
@@ -253,7 +254,7 @@ int main(int argc, char* argv[]) {
   // inicia o X11
   x11_init(IMAGE_SIZE);
   // cria a tabela de cores de acordo com o numero de iteracoes
-  colors_init(colors, QUANTITY_ITERATION);
+  colors_init(colors, QUANTITY_ITERATION, NUMBER_OF_COLORS);
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
   task_queue = queue_init(100, sizeof(task_data));
   result_queue = queue_init(100, sizeof(result_data));
