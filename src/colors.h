@@ -19,7 +19,9 @@ static int palette[] = {
   13346204,   // #CA824C (Marrom claro)
   11064646,   // #A8A56E (Verde amarelado)
   8765439,    // #85A4BF (Azul esverdeado)
-  5353215     // #51A04F (Verde brilhante)
+  5353215,    // #51A04F (Verde brilhante)
+  14815782,   // #E21226 (Vermelho)
+  15357116    // #EA54BC (Rosa)
 };
 
 // escolhe a quantidade de cores que queremos que tenha no desenho
