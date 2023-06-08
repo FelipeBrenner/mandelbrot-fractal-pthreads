@@ -15,10 +15,10 @@ static const int QUANTITY_ITERATION = 1024;
 static const int NUMBER_OF_COLORS = 72;
 static int colors[QUANTITY_ITERATION + 1] = {0};
 
-// fila/buffer de trabalhos
-static queue *task_queue;
-// fila/buffer de resultados
-static queue *result_queue;
+// fila de jobs
+static queue *jobs_queue;
+// fila de resultados
+static queue *results_queue;
 
 // coordendadas na tela
 float coordinates_xi = -2.5;
@@ -114,7 +114,7 @@ static int create_tasks(int image_width, int image_height) {
       task->xf = xf;
       task->yi = yi;
       task->yf = yf;
-      queue_push(task_queue, task);
+      queue_push(jobs_queue, task);
       tasks_created++;
     }
   }
@@ -125,19 +125,19 @@ static int create_tasks(int image_width, int image_height) {
 // cria as threads trabalhadoras - algoritmo mandelbrot
 static void *workers(void *data) {
   while (1) {
-    // se a lista de tarefas está vazia nao faz nada ainda
-    if (task_queue->is_empty) {
+    // se a lista de jobs está vazia nao faz nada ainda
+    if (jobs_queue->is_empty) {
       break;
     }
 
     // quando há trabalho a ser realizado então bloqueia a thread para ser utilizada
-    pthread_mutex_lock(task_queue->mutex);
+    pthread_mutex_lock(jobs_queue->mutex);
 
     // pega a tarefa da lista
     task_data *task = malloc(sizeof(task_data));
-    queue_pop(task_queue, task);
+    queue_pop(jobs_queue, task);
     // desbloqueia a tarefa
-    pthread_mutex_unlock(task_queue->mutex);
+    pthread_mutex_unlock(jobs_queue->mutex);
 
     result_data *result = malloc(sizeof(result_data));
     result->xi = task->xi;
@@ -160,13 +160,13 @@ static void *workers(void *data) {
       }
     }
 
-    pthread_mutex_lock(result_queue->mutex);
-    while (result_queue->is_full) {
-      pthread_cond_wait(result_queue->condition_not_full, result_queue->mutex);
+    pthread_mutex_lock(results_queue->mutex);
+    while (results_queue->is_full) {
+      pthread_cond_wait(results_queue->condition_not_full, results_queue->mutex);
     }
-    queue_push(result_queue, result);
-    pthread_mutex_unlock(result_queue->mutex);
-    pthread_cond_signal(result_queue->condition_not_empty);
+    queue_push(results_queue, result);
+    pthread_mutex_unlock(results_queue->mutex);
+    pthread_cond_signal(results_queue->condition_not_empty);
   }
 
   return NULL;
@@ -183,16 +183,16 @@ static void *printer(void *data) {
       return NULL;
     }
 
-    pthread_mutex_lock(result_queue->mutex);
-    while (result_queue->is_empty) {
-      pthread_cond_wait(result_queue->condition_not_empty, result_queue->mutex);
+    pthread_mutex_lock(results_queue->mutex);
+    while (results_queue->is_empty) {
+      pthread_cond_wait(results_queue->condition_not_empty, results_queue->mutex);
     }
 
     result_data *result = malloc(sizeof(result_data));
-    queue_pop(result_queue, result);
+    queue_pop(results_queue, result);
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
-    pthread_mutex_unlock(result_queue->mutex);
-    pthread_cond_signal(result_queue->condition_not_full);
+    pthread_mutex_unlock(results_queue->mutex);
+    pthread_cond_signal(results_queue->condition_not_full);
     consumed_tasks++;
   }
 }
@@ -256,8 +256,8 @@ int main(int argc, char* argv[]) {
   // cria a tabela de cores de acordo com o numero de iteracoes
   colors_init(colors, QUANTITY_ITERATION, NUMBER_OF_COLORS);
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
-  task_queue = queue_init(100, sizeof(task_data));
-  result_queue = queue_init(100, sizeof(result_data));
+  jobs_queue = queue_init(100, sizeof(task_data));
+  results_queue = queue_init(100, sizeof(result_data));
 
   // cria as threads necessarias para realizar a execucao e executa
   process_mandelbrot_set();
@@ -266,8 +266,8 @@ int main(int argc, char* argv[]) {
   x11_handle_events(IMAGE_SIZE, transform_coordinates);
 
   // destroi as filas de tarefas e tambem a instancia do x11
-  queue_destroy(task_queue);
-  queue_destroy(result_queue);
+  queue_destroy(jobs_queue);
+  queue_destroy(results_queue);
   x11_destroy();
 
   return 0;
