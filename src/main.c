@@ -10,15 +10,18 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 12;
+static const int THREADS_QUANTITY = 8;
 static const int QUANTITY_ITERATION = 1024;
-static const int NUMBER_OF_COLORS = 72;
+static const int NUMBER_OF_COLORS = 18;
 static int colors[QUANTITY_ITERATION + 1] = {0};
 
 // fila de jobs
 static queue *jobs_queue;
 // fila de resultados
 static queue *results_queue;
+
+int threadsQuantity = THREADS_QUANTITY;
+int quantityInteraction = QUANTITY_ITERATION;
 
 // coordendadas na tela
 float coordinates_xi = -2.5;
@@ -62,8 +65,8 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
     test_imaginary = z_imaginary;
 
     test_limit += test_limit;
-    if (test_limit > QUANTITY_ITERATION) {
-      test_limit = QUANTITY_ITERATION;
+    if (test_limit > quantityInteraction) {
+      test_limit = quantityInteraction;
     }
 
     for (; test_index < test_limit; test_index++) {
@@ -78,12 +81,12 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
       }
 
       if ((z_real == test_real) && (z_imaginary == test_imaginary)) {
-        return QUANTITY_ITERATION;
+        return quantityInteraction;
       }
     }
-  } while (test_limit != QUANTITY_ITERATION);
+  } while (test_limit != quantityInteraction);
 
-  return QUANTITY_ITERATION;
+  return quantityInteraction;
 }
 
 // criacao das tarefas de acordo com o tamanho da imagem final
@@ -203,12 +206,12 @@ void process_mandelbrot_set() {
   int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // processos trabalhadores para executar com a qt de threads determinada
-  pthread_t workers_threads[THREADS_QUANTITY];
+  pthread_t workers_threads[threadsQuantity];
   // processo impressor
   pthread_t printer_thread;
 
   // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo workers
-  for (int i = 0; i < THREADS_QUANTITY; i++) {
+  for (int i = 0; i < threadsQuantity; i++) {
     pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
 
@@ -220,7 +223,7 @@ void process_mandelbrot_set() {
   pthread_create(&printer_thread, NULL, printer, cd);
 
   // junta o resultado das threads de execucao
-  for (int i = 0; i < THREADS_QUANTITY; i++) {
+  for (int i = 0; i < threadsQuantity; i++) {
     pthread_join(workers_threads[i], NULL);
   }
 
@@ -242,19 +245,16 @@ void transform_coordinates(int xi_signal, int xf_signal, int yi_signal, int yf_s
 
 int main(int argc, char* argv[]) {
   
-  // lugar onde a tela vai ser criada
-  if (argc == 5) {
-    // converte string para double
-    coordinates_xi = atof(argv[1]);
-    coordinates_xf = atof(argv[2]);
-    coordinates_yi = atof(argv[3]);
-    coordinates_yf = atof(argv[4]);
+  // pega os argumentos enviados no comando
+  if (argc == 3) {
+    threadsQuantity = atof(argv[1]);
+    quantityInteraction = atof(argv[2]);
   }
 
   // inicia o X11
   x11_init(IMAGE_SIZE);
   // cria a tabela de cores de acordo com o numero de iteracoes
-  colors_init(colors, QUANTITY_ITERATION, NUMBER_OF_COLORS);
+  colors_init(colors, quantityInteraction, NUMBER_OF_COLORS);
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
   jobs_queue = queue_init(100, sizeof(task_data));
   results_queue = queue_init(100, sizeof(result_data));
