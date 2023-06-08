@@ -1,6 +1,3 @@
-//
-//  queue.h
-//  mandelbrot-fractal
 // fila
 
 #ifndef queue_h
@@ -73,4 +70,4 @@ void queue_pop(queue *q, void *item) {
   }
   q->is_full = 0;
 }
-#endif /* queue_h */
+#endif

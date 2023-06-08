@@ -1,7 +1,3 @@
-//
-//  colors.h
-//  mandelbrot-fractal
-//
 // paleta de cores que estao sendo utilizadas
 
 #ifndef colors_h
@@ -26,7 +22,7 @@ static int palette[] = {
   6960131
 };
 
-//escolhe a quantidade de cores que queremos que tenha no desenho
+// escolhe a quantidade de cores que queremos que tenha no desenho
 static void colors_init(int *colors, int length) {
   for (int i= 0; i < length - 1; i++) {
     colors[i] = palette[i % 16];
@@ -34,4 +30,4 @@ static void colors_init(int *colors, int length) {
 }
 
 
-#endif /* colors_h */
+#endif

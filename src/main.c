@@ -24,6 +24,7 @@ float coordinates_xf = 1.5;
 float coordinates_yi = -2;
 float coordinates_yf = 2;
 const int IMAGE_SIZE = 800;
+const int GRAIN_SIZE = 100;
 
 // lista de tarefas a serem executadas
 typedef struct {
@@ -36,6 +37,7 @@ typedef struct {
   int xf;
   int yi;
   int yf;
+  
 } task_data;
 
 // resultado de cada tarefa
@@ -87,8 +89,8 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
 static int create_tasks(int image_width, int image_height) {
   
   // tamanho do nosso grao
-  const int grain_width = 100;
-  const int grain_height = 100;
+  const int grain_width = GRAIN_SIZE;
+  const int grain_height = GRAIN_SIZE;
 
   // tamanho do pedaco da tela por grao
   const int horizontal_chunks = image_width / grain_width;
@@ -96,7 +98,7 @@ static int create_tasks(int image_width, int image_height) {
 
   int tasks_created = 0;
 
-// criacao das tarefas
+  // criacao das tarefas
   for(int j = 0; j < vertical_chunks; j++) {
     for(int i = 0; i < horizontal_chunks; i++) {
       int xi = i * grain_width;
@@ -245,7 +247,6 @@ int main(int argc, char* argv[]) {
     coordinates_yf = atof(argv[4]);
   }
 
-  ////// inicializacao
   // inicia o X11
   x11_init(IMAGE_SIZE);
   // cria a tabela de cores de acordo com o numero de iteracoes

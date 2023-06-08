@@ -1,8 +1,3 @@
-//
-//  x11.h
-//  mandelbrot-fractal
-
-
 #ifndef x11_h
 #define x11_h
 
@@ -113,4 +108,4 @@ static void x11_handle_events(int image_size, void (*transform_coordinates_cb)(i
   }
 }
 
-#endif /* x11_h */
+#endif
