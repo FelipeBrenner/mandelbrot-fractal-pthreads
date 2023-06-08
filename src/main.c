@@ -14,8 +14,9 @@ static const int THREADS_QUANTITY = 8;
 static const int QUANTITY_ITERATION = 1024;
 static int colors[QUANTITY_ITERATION + 1] = {0};
 
-// filas de tarefas e resultados
+// fila/buffer de trabalhos
 static queue *task_queue;
+// fila/buffer de resultados
 static queue *result_queue;
 
 // coordendadas na tela
@@ -198,8 +199,9 @@ void process_mandelbrot_set() {
   // cria quantidade de tasks de acordo com o tamanho da imagem
   int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
-  // cria o pthread para executar com a qt de threads determinada
+  // processos trabalhadores para executar com a qt de threads determinada
   pthread_t worker_threads[THREADS_QUANTITY];
+  // processo impressor
   pthread_t producer_thread;
 
   // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo worker

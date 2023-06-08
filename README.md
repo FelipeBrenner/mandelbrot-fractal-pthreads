@@ -39,3 +39,5 @@ http://jonisalonen.com/2013/lets-draw-the-mandelbrot-set/
 - [ ] Refatorar colors.h
 - [ ] Testar enxergar os quadrados renderizando por vez
 - [ ] Remover coordenadas por parâmetro e passar a receber as coisas que é para variarmos no enunciado do trabalho
+- [ ] Funcao worker alterar para quem está vazia nem lockar e já dar break
+- [ ] Criar processo 1 para organizar as jobs com o `create_tasks`
