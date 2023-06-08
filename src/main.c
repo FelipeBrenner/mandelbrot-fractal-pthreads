@@ -29,7 +29,7 @@ const int GRAIN_SIZE = 100;
 // lista de tarefas a serem executadas
 typedef struct {
   int tasks;
-} consumer_data;
+} producer_data;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -106,7 +106,7 @@ static int create_tasks(int image_width, int image_height) {
       int yi = j * grain_height;
       int yf = ((j + 1) * grain_height) - 1;
 
-      // task_data == onde cada tarefa vai ser executada
+      // task_data == qual quadrante da tela cada worker vai ser responsavel
       task_data *task = malloc(sizeof(task_data));
       task->xi = xi;
       task->xf = xf;
@@ -120,8 +120,8 @@ static int create_tasks(int image_width, int image_height) {
   return tasks_created;
 }
 
-// cria as thread de producao dos dados - algoritmo mandelbrot
-static void *producer(void *data) {
+// cria as threads trabalhadoras - algoritmo mandelbrot
+static void *worker(void *data) {
   while (1) {
     // bloqueia a thread para ser utilizada
     pthread_mutex_lock(task_queue->mutex);
@@ -169,8 +169,8 @@ static void *producer(void *data) {
 }
 
 // cria as threads de consumo dos dados - gerando na tela
-static void *consumer(void *data) {
-  consumer_data *cd = (consumer_data *) data;
+static void *producer(void *data) {
+  producer_data *cd = (producer_data *) data;
   int consumed_tasks = 0;
 
   while (1) {
@@ -199,28 +199,28 @@ void process_mandelbrot_set() {
   int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // cria o pthread para executar com a qt de threads determinada
-  pthread_t producer_threads[THREADS_QUANTITY];
-  pthread_t consumer_thread;
+  pthread_t worker_threads[THREADS_QUANTITY];
+  pthread_t producer_thread;
 
-  // determina a qt de threads a serem criadas e diz como cada thread vai ser criada com o metodo producer
+  // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo worker
   for (int i = 0; i < THREADS_QUANTITY; i++) {
-    pthread_create(&producer_threads[i], NULL, producer, NULL);
+    pthread_create(&worker_threads[i], NULL, worker, NULL);
   }
 
-  // pega a fila de tarefas consumidas
-  consumer_data *cd = malloc(sizeof(consumer_data));
+  // pega a fila de tarefas produzidas
+  producer_data *cd = malloc(sizeof(producer_data));
   // adiciona o numero de tasks
   cd->tasks = tasks_created;
-  // cria a quantidade de threads a receber as tarefas consumidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
-  pthread_create(&consumer_thread, NULL, consumer, cd);
+  // cria a quantidade de threads a receber as tarefas produzidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
+  pthread_create(&producer_thread, NULL, producer, cd);
 
   // junta o resultado das threads de execucao
   for (int i = 0; i < THREADS_QUANTITY; i++) {
-    pthread_join(producer_threads[i], NULL);
+    pthread_join(worker_threads[i], NULL);
   }
 
   // junta o resultado das threads de consumo
-  pthread_join(consumer_thread, NULL);
+  pthread_join(producer_thread, NULL);
   free(cd);
 }
 
