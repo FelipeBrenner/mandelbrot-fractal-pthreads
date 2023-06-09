@@ -88,7 +88,7 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
   return quantityInteraction;
 }
 
-static void generate_mandelbrot(){
+static void generate_mandelbrot(int xi, int xf, int yi, int yf){
   // qual o tamanho ocupado por um pixel, na escala do plano
   const float pixel_width = (coordinates_xf - coordinates_xi) / IMAGE_SIZE;
   const float pixel_height = (coordinates_yf - coordinates_yi) / IMAGE_SIZE;
@@ -165,7 +165,7 @@ static void *workers(void *data) {
     result->yf = task->yf;
     free(task);
 
-    generate_mandelbrot();
+    generate_mandelbrot(result->xi, result->xf, result->yi, result->yf);
 
     pthread_mutex_lock(results_queue->mutex);
     while (results_queue->has_content) {
