@@ -52,7 +52,6 @@ typedef struct {
   int yf;
 } result_data;
 
-// calculo de mandelbrot
 static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
   float z_real = c_real;
   float z_imaginary = c_imaginary;
@@ -89,10 +88,26 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
   return quantityInteraction;
 }
 
+static void generate_mandelbrot(){
+  // qual o tamanho ocupado por um pixel, na escala do plano
+  const float pixel_width = (coordinates_xf - coordinates_xi) / IMAGE_SIZE;
+  const float pixel_height = (coordinates_yf - coordinates_yi) / IMAGE_SIZE;
+  
+  for (int y = result->yi; y <= result->yf; y++) {
+    for (int x = result->xi; x <= result->xf; x++) {
+      float c_real = coordinates_xi + (x * pixel_width);
+      float c_imaginary = coordinates_yi + (y * pixel_height);
+      int iterations = calculate_mandelbrot_iterations(c_real, c_imaginary);
+      int pixel_index = x + (y * IMAGE_SIZE);
+      ((unsigned *) x_image->data)[pixel_index] = colors[iterations];
+    }
+  }
+}
+
 // criacao das tarefas de acordo com o tamanho da imagem final
 static int create_tasks(int image_width, int image_height) {
   
-  // tamanho do nosso grao
+  // tamanho do grao
   const int grain_width = GRAIN_SIZE;
   const int grain_height = GRAIN_SIZE;
 
@@ -128,19 +143,20 @@ static int create_tasks(int image_width, int image_height) {
 // cria as threads trabalhadoras - algoritmo mandelbrot
 static void *workers(void *data) {
   while (1) {
-    // se a lista de jobs está vazia nao faz nada ainda
+    // se a lista de jobs está vazia nao faz nada
     if (jobs_queue->is_empty) {
       break;
     }
 
-    // quando há trabalho a ser realizado então bloqueia a thread para ser utilizada
+    //Bloqueia a fila, pega uma tarefa e desbloqueia
     pthread_mutex_lock(jobs_queue->mutex);
-
-    // pega a tarefa da lista
+    while (jobs_queue->has_content) {
+      pthread_cond_wait(jobs_queue->condition_not_in_use, jobs_queue->mutex);
+    }
     task_data *task = malloc(sizeof(task_data));
     queue_pop(jobs_queue, task);
-    // desbloqueia a tarefa
     pthread_mutex_unlock(jobs_queue->mutex);
+    pthread_cond_signal(results_queue->condition_not_in_use);
 
     result_data *result = malloc(sizeof(result_data));
     result->xi = task->xi;
@@ -149,26 +165,15 @@ static void *workers(void *data) {
     result->yf = task->yf;
     free(task);
 
-    // qual o tamanho ocupado por um pixel, na escala do plano
-    const float pixel_width = (coordinates_xf - coordinates_xi) / IMAGE_SIZE;
-    const float pixel_height = (coordinates_yf - coordinates_yi) / IMAGE_SIZE;
-
-    for (int y = result->yi; y <= result->yf; y++) {
-      for (int x = result->xi; x <= result->xf; x++) {
-        float c_real = coordinates_xi + (x * pixel_width);
-        float c_imaginary = coordinates_yi + (y * pixel_height);
-        int iterations = calculate_mandelbrot_iterations(c_real, c_imaginary);
-        int pixel_index = x + (y * IMAGE_SIZE);
-        ((unsigned *) x_image->data)[pixel_index] = colors[iterations];
-      }
-    }
+    generate_mandelbrot();
 
     pthread_mutex_lock(results_queue->mutex);
-    while (results_queue->is_full) {
-      pthread_cond_wait(results_queue->condition_not_full, results_queue->mutex);
+    while (results_queue->has_content) {
+      pthread_cond_wait(results_queue->condition_not_in_use, results_queue->mutex);
     }
     queue_push(results_queue, result);
     pthread_mutex_unlock(results_queue->mutex);
+    pthread_cond_signal(results_queue->condition_not_in_use);
     pthread_cond_signal(results_queue->condition_not_empty);
   }
 
@@ -195,7 +200,6 @@ static void *printer(void *data) {
     queue_pop(results_queue, result);
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
     pthread_mutex_unlock(results_queue->mutex);
-    pthread_cond_signal(results_queue->condition_not_full);
     consumed_tasks++;
   }
 }
