@@ -93,8 +93,8 @@ static void generate_mandelbrot(int xi, int xf, int yi, int yf){
   const float pixel_width = (coordinates_xf - coordinates_xi) / IMAGE_SIZE;
   const float pixel_height = (coordinates_yf - coordinates_yi) / IMAGE_SIZE;
   
-  for (int y = result->yi; y <= result->yf; y++) {
-    for (int x = result->xi; x <= result->xf; x++) {
+  for (int y = yi; y <= yf; y++) {
+    for (int x = xi; x <= xf; x++) {
       float c_real = coordinates_xi + (x * pixel_width);
       float c_imaginary = coordinates_yi + (y * pixel_height);
       int iterations = calculate_mandelbrot_iterations(c_real, c_imaginary);
