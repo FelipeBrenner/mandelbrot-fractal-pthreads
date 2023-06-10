@@ -10,10 +10,12 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 8;
-static const int QUANTITY_ITERATION = 1024;
-static const int NUMBER_OF_COLORS = 18;
-static int colors[QUANTITY_ITERATION + 1] = {0};
+static const int THREADS_QUANTITY = 64;
+static const int COLORS_COMPLEXITY = 256;
+static const int NUMBER_OF_COLORS = 8;
+const int IMAGE_SIZE = 800;
+const int GRAIN_SIZE = 200;
+static int colors[COLORS_COMPLEXITY + 1] = {0};
 
 // fila de jobs
 static queue *jobs_queue;
@@ -21,15 +23,14 @@ static queue *jobs_queue;
 static queue *results_queue;
 
 int threadsQuantity = THREADS_QUANTITY;
-int quantityInteraction = QUANTITY_ITERATION;
+int colorsComplexity = COLORS_COMPLEXITY;
+int numberOfColors = NUMBER_OF_COLORS;
 
 // coordendadas na tela
 float coordinates_xi = -2.5;
 float coordinates_xf = 1.5;
 float coordinates_yi = -2;
 float coordinates_yf = 2;
-const int IMAGE_SIZE = 800;
-const int GRAIN_SIZE = 100;
 
 // lista de tarefas a serem executadas
 typedef struct {
@@ -64,8 +65,8 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
     test_imaginary = z_imaginary;
 
     test_limit += test_limit;
-    if (test_limit > quantityInteraction) {
-      test_limit = quantityInteraction;
+    if (test_limit > colorsComplexity) {
+      test_limit = colorsComplexity;
     }
 
     for (; test_index < test_limit; test_index++) {
@@ -80,21 +81,21 @@ static int calculate_mandelbrot_iterations(float c_real, float c_imaginary) {
       }
 
       if ((z_real == test_real) && (z_imaginary == test_imaginary)) {
-        return quantityInteraction;
+        return colorsComplexity;
       }
     }
-  } while (test_limit != quantityInteraction);
+  } while (test_limit != colorsComplexity);
 
-  return quantityInteraction;
+  return colorsComplexity;
 }
 
-static void generate_mandelbrot(int xi, int xf, int yi, int yf){
+static void generate_mandelbrot(result_data *result) {
   // qual o tamanho ocupado por um pixel, na escala do plano
   const float pixel_width = (coordinates_xf - coordinates_xi) / IMAGE_SIZE;
   const float pixel_height = (coordinates_yf - coordinates_yi) / IMAGE_SIZE;
   
-  for (int y = yi; y <= yf; y++) {
-    for (int x = xi; x <= xf; x++) {
+  for (int y = result->yi; y <= result->yf; y++) {
+    for (int x = result->xi; x <= result->xf; x++) {
       float c_real = coordinates_xi + (x * pixel_width);
       float c_imaginary = coordinates_yi + (y * pixel_height);
       int iterations = calculate_mandelbrot_iterations(c_real, c_imaginary);
@@ -143,20 +144,18 @@ static int create_tasks(int image_width, int image_height) {
 // cria as threads trabalhadoras - algoritmo mandelbrot
 static void *workers(void *data) {
   while (1) {
-    // se a lista de jobs está vazia nao faz nada
-    if (jobs_queue->is_empty) {
-      break;
-    }
-
-    //Bloqueia a fila, pega uma tarefa e desbloqueia
+    // bloqueia a thread para ser utilizada
     pthread_mutex_lock(jobs_queue->mutex);
-    while (jobs_queue->has_content) {
-      pthread_cond_wait(jobs_queue->condition_not_in_use, jobs_queue->mutex);
-    }
+    // desbloqueia para a lista de tarefas esteja vazia
+    if (jobs_queue->is_empty) {
+      pthread_mutex_unlock(jobs_queue->mutex);
+      break;
+    };
+
+    // pega a tarefa da lista
     task_data *task = malloc(sizeof(task_data));
     queue_pop(jobs_queue, task);
     pthread_mutex_unlock(jobs_queue->mutex);
-    pthread_cond_signal(results_queue->condition_not_in_use);
 
     result_data *result = malloc(sizeof(result_data));
     result->xi = task->xi;
@@ -165,15 +164,14 @@ static void *workers(void *data) {
     result->yf = task->yf;
     free(task);
 
-    generate_mandelbrot(result->xi, result->xf, result->yi, result->yf);
+    generate_mandelbrot(result);
 
     pthread_mutex_lock(results_queue->mutex);
-    while (results_queue->has_content) {
-      pthread_cond_wait(results_queue->condition_not_in_use, results_queue->mutex);
+    while (results_queue->is_full) {
+      pthread_cond_wait(results_queue->condition_not_full, results_queue->mutex);
     }
     queue_push(results_queue, result);
     pthread_mutex_unlock(results_queue->mutex);
-    pthread_cond_signal(results_queue->condition_not_in_use);
     pthread_cond_signal(results_queue->condition_not_empty);
   }
 
@@ -200,6 +198,7 @@ static void *printer(void *data) {
     queue_pop(results_queue, result);
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
     pthread_mutex_unlock(results_queue->mutex);
+    pthread_cond_signal(results_queue->condition_not_full);
     consumed_tasks++;
   }
 }
@@ -250,18 +249,28 @@ void transform_coordinates(int xi_signal, int xf_signal, int yi_signal, int yf_s
 int main(int argc, char* argv[]) {
   
   // pega os argumentos enviados no comando
+  if (argc == 2) {
+    threadsQuantity = atof(argv[1]);
+  }
   if (argc == 3) {
     threadsQuantity = atof(argv[1]);
-    quantityInteraction = atof(argv[2]);
+    colorsComplexity = atof(argv[2]);
+  }
+  if (argc == 4) {
+    threadsQuantity = atof(argv[1]);
+    colorsComplexity = atof(argv[2]);
+    numberOfColors = atof(argv[3]);
   }
 
   // inicia o X11
   x11_init(IMAGE_SIZE);
   // cria a tabela de cores de acordo com o numero de iteracoes
-  colors_init(colors, quantityInteraction, NUMBER_OF_COLORS);
+  colors_init(colors, colorsComplexity, numberOfColors);
+  // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
+  int queueSize = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
-  jobs_queue = queue_init(100, sizeof(task_data));
-  results_queue = queue_init(100, sizeof(result_data));
+  jobs_queue = queue_init(queueSize, sizeof(task_data));
+  results_queue = queue_init(queueSize, sizeof(result_data));
 
   // cria as threads necessarias para realizar a execucao e executa
   process_mandelbrot_set();
