@@ -33,9 +33,7 @@ float coordinates_yi = -2;
 float coordinates_yf = 2;
 
 // lista de tarefas a serem executadas
-typedef struct {
-  int tasks;
-} printer_data;
+int tasks_created = 0;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -106,7 +104,7 @@ static void generate_mandelbrot(result_data *result) {
 }
 
 // criacao das tarefas de acordo com o tamanho da imagem final
-static int create_tasks(int image_width, int image_height) {
+static void create_tasks(int image_width, int image_height) {
   
   // tamanho do grao
   const int grain_width = GRAIN_SIZE;
@@ -143,7 +141,6 @@ static int create_tasks(int image_width, int image_height) {
     }
   }
 
-  return tasks_created;
 }
 
 // cria as threads trabalhadoras - algoritmo mandelbrot
@@ -180,12 +177,11 @@ static void *workers(void *data) {
 }
 
 // cria as threads de impressao dos dados em tela
-static void *printer(void *data) {
-  printer_data *cd = (printer_data *) data;
+static void *printer() {
   int consumed_tasks = 0;
 
   while (1) {
-    if (consumed_tasks == cd->tasks) {
+    if (consumed_tasks == tasks_created) {
       x11_flush();
       return NULL;
     }
@@ -220,15 +216,11 @@ void process_mandelbrot_set() {
     pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
 
+  // cria a quantidade de threads a receber as tarefas produzidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
+  pthread_create(&printer_thread, NULL, printer, NULL);
+
   // cria quantidade de tasks de acordo com o tamanho da imagem
   int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
-
-  // pega a fila de tarefas produzidas
-  printer_data *cd = malloc(sizeof(printer_data));
-  // adiciona o numero de tasks
-  cd->tasks = tasks_created;
-  // cria a quantidade de threads a receber as tarefas produzidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
-  pthread_create(&printer_thread, NULL, printer, cd);
 
   // junta o resultado das threads de execucao
   for (int i = 0; i < threadsQuantity; i++) {
@@ -237,7 +229,6 @@ void process_mandelbrot_set() {
 
   // junta o resultado das threads de consumo
   pthread_join(printer_thread, NULL);
-  free(cd);
 }
 
 // tranformacao de coordenadas originais para virtuais
