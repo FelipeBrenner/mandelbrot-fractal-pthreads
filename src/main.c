@@ -33,7 +33,7 @@ float coordinates_yi = -2;
 float coordinates_yf = 2;
 
 // lista de tarefas a serem executadas
-int queue_size = 0;
+int queue_size, tasks_created = 0;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -114,6 +114,7 @@ static void create_tasks(int image_width, int image_height) {
   const int horizontal_chunks = image_width / grain_width;
   const int vertical_chunks = image_height / grain_height;
 
+  tasks_created = 0;
   // criacao das tarefas
   for(int j = 0; j < vertical_chunks; j++) {
     for(int i = 0; i < horizontal_chunks; i++) {
@@ -134,9 +135,10 @@ static void create_tasks(int image_width, int image_height) {
       queue_push(jobs_queue, task);
       pthread_cond_signal(jobs_queue->condition_not_empty);
       pthread_mutex_unlock(jobs_queue->mutex);
-
+      tasks_created++;
     }
   }
+  pthread_cond_broadcast(jobs_queue->condition_not_empty);
 
 }
 
@@ -146,8 +148,11 @@ static void *workers(void *data) {
     task_data *task = malloc(sizeof(task_data));
 
     pthread_mutex_lock(jobs_queue->mutex);
-    while (jobs_queue->is_empty) {
+    while (jobs_queue->is_empty && tasks_created < queue_size) {
       pthread_cond_wait(jobs_queue->condition_not_empty, jobs_queue->mutex);
+    }
+    if(tasks_created == queue_size){
+      break;
     }
     //todo: Seção crítica jobs
     queue_pop(jobs_queue, task);
