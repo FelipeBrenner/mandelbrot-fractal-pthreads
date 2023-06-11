@@ -133,7 +133,12 @@ static int create_tasks(int image_width, int image_height) {
       task->xf = xf;
       task->yi = yi;
       task->yf = yf;
+
+      pthread_mutex_lock(jobs_queue->mutex);
       queue_push(jobs_queue, task);
+      pthread_cond_signal(jobs_queue->condition_not_empty);
+      pthread_mutex_unlock(jobs_queue->mutex);
+
       tasks_created++;
     }
   }
@@ -144,16 +149,13 @@ static int create_tasks(int image_width, int image_height) {
 // cria as threads trabalhadoras - algoritmo mandelbrot
 static void *workers(void *data) {
   while (1) {
-    // bloqueia a thread para ser utilizada
-    pthread_mutex_lock(jobs_queue->mutex);
-    // desbloqueia para a lista de tarefas esteja vazia
-    if (jobs_queue->is_empty) {
-      pthread_mutex_unlock(jobs_queue->mutex);
-      break;
-    };
-
-    // pega a tarefa da lista
     task_data *task = malloc(sizeof(task_data));
+
+    pthread_mutex_lock(jobs_queue->mutex);
+    while (jobs_queue->is_empty) {
+      pthread_cond_wait(jobs_queue->condition_not_empty, jobs_queue->mutex);
+    }
+    //todo: Seção crítica jobs
     queue_pop(jobs_queue, task);
     pthread_mutex_unlock(jobs_queue->mutex);
 
@@ -167,12 +169,11 @@ static void *workers(void *data) {
     generate_mandelbrot(result);
 
     pthread_mutex_lock(results_queue->mutex);
-    while (results_queue->is_full) {
-      pthread_cond_wait(results_queue->condition_not_full, results_queue->mutex);
-    }
+    //todo: Seção critica resultados
     queue_push(results_queue, result);
-    pthread_mutex_unlock(results_queue->mutex);
     pthread_cond_signal(results_queue->condition_not_empty);
+    pthread_mutex_unlock(results_queue->mutex);
+
   }
 
   return NULL;
@@ -189,24 +190,25 @@ static void *printer(void *data) {
       return NULL;
     }
 
+    result_data *result = malloc(sizeof(result_data));
+    
     pthread_mutex_lock(results_queue->mutex);
     while (results_queue->is_empty) {
       pthread_cond_wait(results_queue->condition_not_empty, results_queue->mutex);
     }
 
-    result_data *result = malloc(sizeof(result_data));
+    //todo: Seção critica resultados
     queue_pop(results_queue, result);
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
+
     pthread_mutex_unlock(results_queue->mutex);
-    pthread_cond_signal(results_queue->condition_not_full);
+
     consumed_tasks++;
   }
 }
 
 // cria as threads necessarias para realizar a execucao
 void process_mandelbrot_set() {
-  // cria quantidade de tasks de acordo com o tamanho da imagem
-  int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // processos trabalhadores para executar com a qt de threads determinada
   pthread_t workers_threads[threadsQuantity];
@@ -217,6 +219,9 @@ void process_mandelbrot_set() {
   for (int i = 0; i < threadsQuantity; i++) {
     pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
+
+  // cria quantidade de tasks de acordo com o tamanho da imagem
+  int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // pega a fila de tarefas produzidas
   printer_data *cd = malloc(sizeof(printer_data));
