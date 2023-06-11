@@ -33,7 +33,7 @@ float coordinates_yi = -2;
 float coordinates_yf = 2;
 
 // lista de tarefas a serem executadas
-int queue_size, tasks_created = 0;
+int queue_size, tasks_created, consumed_tasks = 0;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -148,10 +148,10 @@ static void *workers(void *data) {
     task_data *task = malloc(sizeof(task_data));
 
     pthread_mutex_lock(jobs_queue->mutex);
-    while (jobs_queue->is_empty && tasks_created < queue_size) {
+    while (jobs_queue->is_empty && consumed_tasks < queue_size) {
       pthread_cond_wait(jobs_queue->condition_not_empty, jobs_queue->mutex);
     }
-    if(tasks_created == queue_size){
+    if(consumed_tasks == queue_size){
       break;
     }
     //todo: Seção crítica jobs
@@ -180,7 +180,7 @@ static void *workers(void *data) {
 
 // cria as threads de impressao dos dados em tela
 static void *printer() {
-  int consumed_tasks = 0;
+  consumed_tasks = 0;
 
   while (1) {
     if (consumed_tasks == queue_size) {
