@@ -33,7 +33,7 @@ float coordinates_yi = -2;
 float coordinates_yf = 2;
 
 // lista de tarefas a serem executadas
-int tasks_created = 0;
+int queue_size = 0;
 
 // onde cada tarefa deve ser executada
 typedef struct {
@@ -114,8 +114,6 @@ static void create_tasks(int image_width, int image_height) {
   const int horizontal_chunks = image_width / grain_width;
   const int vertical_chunks = image_height / grain_height;
 
-  int tasks_created = 0;
-
   // criacao das tarefas
   for(int j = 0; j < vertical_chunks; j++) {
     for(int i = 0; i < horizontal_chunks; i++) {
@@ -137,7 +135,6 @@ static void create_tasks(int image_width, int image_height) {
       pthread_cond_signal(jobs_queue->condition_not_empty);
       pthread_mutex_unlock(jobs_queue->mutex);
 
-      tasks_created++;
     }
   }
 
@@ -181,7 +178,7 @@ static void *printer() {
   int consumed_tasks = 0;
 
   while (1) {
-    if (consumed_tasks == tasks_created) {
+    if (consumed_tasks == queue_size) {
       x11_flush();
       return NULL;
     }
@@ -220,7 +217,7 @@ void process_mandelbrot_set() {
   pthread_create(&printer_thread, NULL, printer, NULL);
 
   // cria quantidade de tasks de acordo com o tamanho da imagem
-  int tasks_created = create_tasks(IMAGE_SIZE, IMAGE_SIZE);
+  create_tasks(IMAGE_SIZE, IMAGE_SIZE);
 
   // junta o resultado das threads de execucao
   for (int i = 0; i < threadsQuantity; i++) {
@@ -263,10 +260,10 @@ int main(int argc, char* argv[]) {
   // cria a tabela de cores de acordo com o numero de iteracoes
   colors_init(colors, colorsComplexity, numberOfColors);
   // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
-  int queueSize = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
+  queue_size = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
-  jobs_queue = queue_init(queueSize, sizeof(task_data));
-  results_queue = queue_init(queueSize, sizeof(result_data));
+  jobs_queue = queue_init(queue_size, sizeof(task_data));
+  results_queue = queue_init(queue_size, sizeof(result_data));
 
   // cria as threads necessarias para realizar a execucao e executa
   process_mandelbrot_set();
