@@ -14,7 +14,7 @@ static const int THREADS_QUANTITY = 64;
 static const int COLORS_COMPLEXITY = 256;
 static const int NUMBER_OF_COLORS = 8;
 const int IMAGE_SIZE = 800;
-const int GRAIN_SIZE = 50;
+const int GRAIN_SIZE = 200;
 // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
 static const int QUEUE_SIZE = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
 static int colors[COLORS_COMPLEXITY + 1] = {0};
