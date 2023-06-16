@@ -10,7 +10,7 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 64;
+static const int THREADS_QUANTITY = 32;
 static const int COLORS_COMPLEXITY = 256;
 static const int NUMBER_OF_COLORS = 8;
 const int IMAGE_SIZE = 800;
@@ -186,29 +186,28 @@ static void *printer(void *data) {
   return NULL;
 }
 
-// cria as threads necessarias para realizar a execucao
-void process_mandelbrot() {
+void create_workers_threads() {
   // processos trabalhadores para executar com a qt de threads determinada
   pthread_t workers_threads[threadsQuantity];
-  // processo impressor
-  pthread_t printer_thread;
 
   // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo workers
   for (int i = 0; i < threadsQuantity; i++) {
     pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
-   printf("criou as threads workers\n");
+  printf("criou as threads workers\n");
+}
+
+void create_printer_thread() {
+  // processo impressor
+  pthread_t printer_thread;
 
   // cria a quantidade de threads a receber as tarefas produzidas de acordo com a qt de tarefas, e diz como cada thread vai ser criada
   pthread_create(&printer_thread, NULL, printer, NULL);
-  printf("criou a thread printer\n");
-
-  // cria quantidade de tasks de acordo com o tamanho da imagem
-  create_tasks(IMAGE_SIZE, IMAGE_SIZE);
-  printf("criou as tasks para serem processadas\n");
+  printf("criou thread printer\n");
 
   // junta o resultado das threads de consumo
   pthread_join(printer_thread, NULL);
+  printf("encerrou thread printer\n");
 }
 
 // tranformacao de coordenadas originais para virtuais
@@ -221,6 +220,7 @@ void transform_coordinates(int xi_signal, int xf_signal, int yi_signal, int yf_s
   coordinates_yf += height * 0.1 * yf_signal;
 
   create_tasks(IMAGE_SIZE, IMAGE_SIZE);
+  create_printer_thread();
 }
 
 int main(int argc, char* argv[]) {
@@ -248,7 +248,9 @@ int main(int argc, char* argv[]) {
   results_queue = queue_init(QUEUE_SIZE, sizeof(result_data));
 
   // cria as threads necessarias para realizar a execucao e executa
-  process_mandelbrot();
+  create_workers_threads();
+  create_tasks(IMAGE_SIZE, IMAGE_SIZE);
+  create_printer_thread();
 
   // cria a tela de acordo com o lugar que especificamos na tela
   x11_handle_events(IMAGE_SIZE, transform_coordinates);
