@@ -14,7 +14,7 @@ static const int THREADS_QUANTITY = 64;
 static const int COLORS_COMPLEXITY = 256;
 static const int NUMBER_OF_COLORS = 8;
 const int IMAGE_SIZE = 800;
-const int GRAIN_SIZE = 50;
+const int GRAIN_SIZE = 200;
 // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
 static const int QUEUE_SIZE = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
 static int colors[COLORS_COMPLEXITY + 1] = {0};
@@ -40,7 +40,7 @@ typedef struct {
   int xf;
   int yi;
   int yf;
-} task_data;
+} job_data;
 
 // resultado de cada tarefa
 typedef struct {
@@ -103,7 +103,7 @@ static void generate_mandelbrot(result_data *result) {
 }
 
 // criacao das tarefas de acordo com o tamanho da imagem final
-static void create_tasks(int image_width, int image_height) {
+static void create_jobs(int image_width, int image_height) {
   // tamanho do grao
   const int grain_width = GRAIN_SIZE;
   const int grain_height = GRAIN_SIZE;
@@ -121,14 +121,14 @@ static void create_tasks(int image_width, int image_height) {
       int yi = j * grain_height;
       int yf = ((j + 1) * grain_height) - 1;
 
-      // task_data == qual quadrante da tela cada produtor vai ser responsavel
-      task_data *task = malloc(sizeof(task_data));
-      task->xi = xi;
-      task->xf = xf;
-      task->yi = yi;
-      task->yf = yf;
-      queue_push(jobs_queue, task);
-      printf("created task \n");
+      // job_data == qual quadrante da tela cada produtor vai ser responsavel
+      job_data *job = malloc(sizeof(job_data));
+      job->xi = xi;
+      job->xf = xf;
+      job->yi = yi;
+      job->yf = yf;
+      queue_push(jobs_queue, job);
+      printf("created job \n");
       pthread_cond_signal(jobs_queue->condition_not_empty);
     }
   }
@@ -147,16 +147,16 @@ static void *workers(void *data) {
     printf("worker achou trabalho\n");
     
     // pega a tarefa da lista
-    task_data *task = malloc(sizeof(task_data));
-    queue_pop(jobs_queue, task);
+    job_data *job = malloc(sizeof(job_data));
+    queue_pop(jobs_queue, job);
     pthread_mutex_unlock(jobs_queue->mutex);
 
     result_data *result = malloc(sizeof(result_data));
-    result->xi = task->xi;
-    result->xf = task->xf;
-    result->yi = task->yi;
-    result->yf = task->yf;
-    free(task);
+    result->xi = job->xi;
+    result->xf = job->xf;
+    result->yi = job->yi;
+    result->yf = job->yf;
+    free(job);
 
     generate_mandelbrot(result);
 
@@ -219,7 +219,7 @@ void transform_coordinates(int xi_signal, int xf_signal, int yi_signal, int yf_s
   coordinates_yi += height * 0.1 * yi_signal;
   coordinates_yf += height * 0.1 * yf_signal;
 
-  create_tasks(IMAGE_SIZE, IMAGE_SIZE);
+  create_jobs(IMAGE_SIZE, IMAGE_SIZE);
   create_printer_thread();
 }
 
@@ -244,12 +244,12 @@ int main(int argc, char* argv[]) {
   // cria a tabela de cores de acordo com o numero de iteracoes
   colors_init(colors, colorsComplexity, numberOfColors);
   // inicializa as filas com um tamanho especifico e tambem tamanho especifico de cada item para alocar memoria
-  jobs_queue = queue_init(QUEUE_SIZE, sizeof(task_data));
+  jobs_queue = queue_init(QUEUE_SIZE, sizeof(job_data));
   results_queue = queue_init(QUEUE_SIZE, sizeof(result_data));
 
   // cria as threads necessarias para realizar a execucao e executa
   create_workers_threads();
-  create_tasks(IMAGE_SIZE, IMAGE_SIZE);
+  create_jobs(IMAGE_SIZE, IMAGE_SIZE);
   create_printer_thread();
 
   // cria a tela de acordo com o lugar que especificamos na tela
