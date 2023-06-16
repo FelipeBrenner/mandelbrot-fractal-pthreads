@@ -169,7 +169,7 @@ static void *workers(void *data) {
 
 // cria as threads de impressao dos dados em tela
 static void *printer(void *data) {
-  while (1) {
+  for(int i=0; i< QUEUE_SIZE; i++) {
     pthread_mutex_lock(results_queue->mutex);
     while (results_queue->is_empty) {
       pthread_cond_wait(results_queue->condition_not_empty, results_queue->mutex);
@@ -182,6 +182,8 @@ static void *printer(void *data) {
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
     pthread_mutex_unlock(results_queue->mutex);
   }
+  x11_flush();
+  return NULL;
 }
 
 // cria as threads necessarias para realizar a execucao
@@ -204,6 +206,9 @@ void process_mandelbrot() {
   // cria quantidade de tasks de acordo com o tamanho da imagem
   create_tasks(IMAGE_SIZE, IMAGE_SIZE);
   printf("criou as tasks para serem processadas\n");
+
+  // junta o resultado das threads de consumo
+  pthread_join(printer_thread, NULL);
 }
 
 // tranformacao de coordenadas originais para virtuais
