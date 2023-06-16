@@ -175,11 +175,10 @@ static void *printer(void *data) {
       pthread_cond_wait(results_queue->condition_not_empty, results_queue->mutex);
     }
 
-    printf("printer \n");
-
     result_data *result = malloc(sizeof(result_data));
     queue_pop(results_queue, result);
     x11_put_image(result->xi, result->yi, result->xi, result->yi, (result->xf - result->xi + 1), (result->yf - result->yi + 1));
+    printf("printou um job \n");
     pthread_mutex_unlock(results_queue->mutex);
   }
   x11_flush();
