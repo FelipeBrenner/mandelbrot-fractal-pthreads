@@ -10,9 +10,9 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 64;
-static const int COLORS_COMPLEXITY = 256;
-static const int NUMBER_OF_COLORS = 8;
+static const int THREADS_QUANTITY = 32;
+static const int COLORS_COMPLEXITY = 64;
+static const int NUMBER_OF_COLORS = 3;
 const int IMAGE_SIZE = 800;
 const int GRAIN_SIZE = 200;
 // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
