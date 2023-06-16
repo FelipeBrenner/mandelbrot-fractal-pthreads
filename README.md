@@ -12,7 +12,6 @@ Necessário fazer a instalação do X11 disponível no site [XQuartz](https://ww
 
 ```bash
 git clone https://github.com/felipebrenner/mandelbrot-fractal-pthreads.git
-make build
 make run
 ```
 
@@ -33,11 +32,3 @@ https://locklessinc.com/articles/mandelbrot/
 https://gist.github.com/andrejbauer/7919569
 
 http://jonisalonen.com/2013/lets-draw-the-mandelbrot-set/
-
-## To Do
-
-- [x] Refatorar colors.h
-- [x] Testar enxergar os quadrados renderizando por vez
-- [x] Remover coordenadas por parâmetro e passar a receber as coisas que é para variarmos no enunciado do trabalho
-- [x] Funcao worker alterar para quem está vazia nem lockar e já dar break
-- [x] Criar processo 1 para organizar as jobs com o `create_tasks`
