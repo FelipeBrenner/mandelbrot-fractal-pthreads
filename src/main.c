@@ -10,11 +10,11 @@
 #import "x11-helpers.h"
 
 // determinando nomes de variaveis utilizadas como padrao
-static const int THREADS_QUANTITY = 32;
+static const int THREADS_QUANTITY = 64;
 static const int COLORS_COMPLEXITY = 256;
 static const int NUMBER_OF_COLORS = 8;
 const int IMAGE_SIZE = 800;
-const int GRAIN_SIZE = 200;
+const int GRAIN_SIZE = 50;
 // o tamanho maximo das filas é a quantidade de graos em que a tela foi dividida, é a quantidade de jobs que tera para ser processado pela threads
 static const int QUEUE_SIZE = IMAGE_SIZE/GRAIN_SIZE * IMAGE_SIZE/GRAIN_SIZE;
 static int colors[COLORS_COMPLEXITY + 1] = {0};
@@ -141,11 +141,11 @@ static void *workers(void *data) {
     pthread_mutex_lock(jobs_queue->mutex);
     // desbloqueia para a lista de tarefas esteja vazia
     while (jobs_queue->is_empty) {
+      printf("worker procurando trabalho\n");
       pthread_cond_wait(jobs_queue->condition_not_empty, jobs_queue->mutex);
     }
+    printf("worker achou trabalho\n");
     
-    printf("worker \n");
-
     // pega a tarefa da lista
     task_data *task = malloc(sizeof(task_data));
     queue_pop(jobs_queue, task);
@@ -190,11 +190,11 @@ void create_workers_threads() {
   // processos trabalhadores para executar com a qt de threads determinada
   pthread_t workers_threads[threadsQuantity];
 
+  printf("começou a criar as threads workers\n");
   // determina a qt de threads criadas e diz o que cada worker vair ser com o metodo workers
   for (int i = 0; i < threadsQuantity; i++) {
     pthread_create(&workers_threads[i], NULL, workers, NULL);
   }
-  printf("criou as threads workers\n");
 }
 
 void create_printer_thread() {
@@ -258,6 +258,7 @@ int main(int argc, char* argv[]) {
   // destroi as filas de tarefas e tambem a instancia do x11
   queue_destroy(jobs_queue);
   queue_destroy(results_queue);
+  printf("matamos a thread main e com isso as threads workers\n");
   x11_destroy();
 
   return 0;
