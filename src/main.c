@@ -218,6 +218,7 @@ void transform_coordinates(int xi_signal, int xf_signal, int yi_signal, int yf_s
   coordinates_yi += height * 0.1 * yi_signal;
   coordinates_yf += height * 0.1 * yf_signal;
 
+  printf("\njobs atualizados novamente para serem printados\n");
   create_jobs(IMAGE_SIZE, IMAGE_SIZE);
   create_printer_thread();
 }
