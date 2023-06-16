@@ -12,7 +12,6 @@ Necessário fazer a instalação do X11 disponível no site [XQuartz](https://ww
 
 ```bash
 git clone https://github.com/felipebrenner/mandelbrot-fractal-pthreads.git
-make build
 make run
 ```
 
