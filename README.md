@@ -3,7 +3,8 @@
 Projeto desenvolvido para a cadeira de Processamento de Alto Desepenho, da graduação de Ciência da Computação da Unisinos. Consiste no uso de pthreads para a construção da estrutura do algoritmo do Fractal de Mandelbrot.
 
 <p align="center">
-  <img alt="mandelbrot-fractal" title="mandelbrot-fractal" src="images/mandelbrot-fractal.png">
+  <img alt="mandelbrot-fractal" title="mandelbrot-fractal" src=".github/mandelbrot-fractal.png">
+  <img alt="gif" title="gif" src=".github/gif.gif">
 </p>
 
 ## ⚙ Execução
